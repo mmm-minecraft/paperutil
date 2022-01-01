@@ -133,8 +133,8 @@ then
 	BUILD="$(curl -s "$URL" | jq -r '.builds | sort | .[-1]')"
 fi
 
-BUILD="$(echo "$BUILD" | perl -MURI::Escape -e 'print uri_escape(<>)')"
-VERSION="$(echo "$VERSION" | perl -MURI::Escape -e 'print uri_escape(<>)')"
+BUILD="$(printf '%s' "$BUILD" | perl -MURI::Escape -e 'print uri_escape(<>)')"
+VERSION="$(printf '%s' "$VERSION" | perl -MURI::Escape -e 'print uri_escape(<>)')"
 
 TEMP_FILE="$(mktemp)"
 
