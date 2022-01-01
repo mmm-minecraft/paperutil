@@ -1,0 +1,523 @@
+#!/bin/sh
+
+# This is free and unencumbered software released into the public domain.
+#
+# Anyone is free to copy, modify, publish, use, compile, sell, or
+# distribute this software, either in source code form or as a compiled
+# binary, for any purpose, commercial or non-commercial, and by any
+# means.
+#
+# In jurisdictions that recognize copyright laws, the author or authors
+# of this software dedicate any and all copyright interest in the
+# software to the public domain. We make this dedication for the benefit
+# of the public at large and to the detriment of our heirs and
+# successors. We intend this dedication to be an overt act of
+# relinquishment in perpetuity of all present and future rights to this
+# software under copyright law.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+# For more information, please refer to <http://unlicense.org/>
+
+echo_error () {
+	printf '%s: %s\n' "${0##*/}" "$*" >&2
+}
+
+die () {
+	local EXIT_CODE=1
+	if [ "$1" -ge 0 ] 2>/dev/null
+	then
+		EXIT_CODE=$(($1))
+		shift
+	fi
+	if [ -n "$1" ]
+	then
+		echo_error "$1"
+	fi
+	exit $EXIT_CODE
+}
+
+nonzero_or_die () {
+	if [ -z "$1" ]
+	then
+		shift
+		die "$@"
+	fi
+}
+
+command_or_die () {
+	while [ $# -gt 0 ]
+	do
+		nonzero_or_die "$(command -v "$1")" "$1: command not found"
+		shift
+	done
+}
+
+command_or_die perl
+
+perl_package_or_die () {
+	while [ $# -gt 0 ]
+	do
+		if perl -M"$1" -e '' 2>/dev/null
+		then
+			shift
+			continue
+		fi
+		die "$1: perl package not found"
+	done
+}
+
+echo_usage () {
+	printf "usage: %s " "${0##*/}"
+	echo '[-group GROUP] -jar JAR [-java JAVA] -mode (launchd|systemd) [-user USER] [-OPTIONS...] [--] [ARGUMENTS...]'
+}
+case "$1" in
+	-h|-help|--help)
+		echo_usage
+		exit 0
+esac
+
+GROUP=
+JAR=
+JAVA=
+MODE=
+OPTIONS=
+USER=
+while [ $# -gt 0 ]
+do
+	case "$1" in
+		-group)
+			nonzero_or_die "$2" "$1: option requires an argument"
+			GROUP="$2"
+			shift 2
+			;;
+		-jar)
+			nonzero_or_die "$2" "$1: option requires an argument"
+			case "$2" in
+				/*)
+					JAR="$2"
+					;;
+				*)
+					JAR="$(pwd)/$2"
+			esac
+			shift 2
+			;;
+		-java)
+			nonzero_or_die "$2" "$1: option requires an argument"
+			case "$2" in
+				/*)
+					JAVA="$2"
+					;;
+				*)
+					JAVA="$(pwd)/$2"
+			esac
+			shift 2
+			;;
+		-mode)
+			nonzero_or_die "$2" "$1: option requires an argument"
+			case "$2" in
+				launchd|systemd)
+					MODE="$2"
+					;;
+				*)
+					die "$2: unsupported mode"
+			esac
+			shift 2
+			;;
+		-user)
+			nonzero_or_die "$2" "$1: option requires an argument"
+			USER="$2"
+			shift 2
+			;;
+		--)
+			shift
+			break
+			;;
+		-*)
+			if [ -z "$OPTIONS" ]
+			then
+				OPTIONS="$1"
+			else
+				OPTIONS="$OPTIONS"$'\037'"$1"
+			fi
+			shift
+			;;
+		*)
+			break
+	esac
+done
+nonzero_or_die "$JAR" "$(echo_usage)"
+nonzero_or_die "$MODE" "$(echo_usage)"
+if [ -z "$JAVA" ]
+then
+	command_or_die java
+	JAVA="$(command -v java)"
+fi
+
+ARGUMENTS=
+while [ $# -gt 0 ]
+do
+	if [ -z "$ARGUMENTS" ]
+	then
+		ARGUMENTS="$1"
+	else
+		ARGUMENTS="$ARGUMENTS"$'\037'"$1"
+	fi
+	shift
+done
+
+case "$MODE" in
+	launchd)
+		perl_package_or_die	HTML::Entities
+esac
+
+WORKING_DIRECTORY="${JAR%/*}"
+
+launchd_escape () {
+	echo "$1" | perl -MHTML::Entities -e 'print encode_entities(<>)'
+}
+
+launchd_is_depth_parameter () {
+	case "$1" in
+		-*)
+			if [ "$1" -le 0 ] 2>/dev/null
+			then
+				return $(true)
+			fi
+	esac
+	return $(false)
+}
+
+launchd_indent () {
+	local DEPTH=0
+	if launchd_is_depth_parameter "$1"
+	then
+		DEPTH=$(($1 * -1))
+		shift
+	fi
+	if [ $DEPTH -eq 0 ]
+	then
+		printf '%s\n' "$*"
+		return
+	fi
+	local INDENT=
+	while [ $DEPTH -gt 0 ]
+	do
+		INDENT="$INDENT\t"
+		DEPTH=$(($DEPTH - 1))
+	done
+	local IFS=$'\n'
+	local RESULT=
+	for LINE in $1
+	do
+		if [ -z "$RESULT" ]
+		then
+			RESULT="$INDENT$LINE"
+		else
+			RESULT="$RESULT\n$INDENT$LINE"
+		fi
+	done
+	echo "$RESULT"
+}
+
+launchd_array () {
+	local DEPTH=0
+	if launchd_is_depth_parameter "$1"
+	then
+		DEPTH=$(($1 * -1))
+		shift
+	fi
+	local CHILD_DEPTH=$(($DEPTH + 1))
+	local RESULT=
+	for SEQUENCE in "$@"
+	do
+		if [ -z "$SEQUENCE" ]
+		then
+			continue
+		fi
+		if [ -z "$RESULT" ]
+		then
+			RESULT="$(launchd_indent -$CHILD_DEPTH "$SEQUENCE")"
+		else
+			RESULT="$RESULT\n$(launchd_indent -$CHILD_DEPTH "$SEQUENCE")"
+		fi
+	done
+	if [ -z "$RESULT" ]
+	then
+		echo "$(launchd_indent -$DEPTH "<array/>")"
+		return
+	fi
+	echo "$(launchd_indent -$DEPTH "<array>")"
+	echo "$RESULT"
+	echo "$(launchd_indent -$DEPTH "</array>")"
+}
+
+launchd_true () {
+	local DEPTH=0
+	if launchd_is_depth_parameter "$1"
+	then
+		DEPTH=$(($1 * -1))
+		shift
+	fi
+	echo "$(launchd_indent -$DEPTH "<true/>")"
+}
+
+launchd_false () {
+	local DEPTH=0
+	if launchd_is_depth_parameter "$1"
+	then
+		DEPTH=$(($1 * -1))
+		shift
+	fi
+	echo "$(launchd_indent -$DEPTH "<false/>")"
+}
+
+launchd_boolean () {
+	local DEPTH=0
+	if launchd_is_depth_parameter "$1"
+	then
+		DEPTH=$(($1 * -1))
+		shift
+	fi
+	case "$1" in
+		true)
+			launchd_true -$DEPTH
+			;;
+		false)
+			launchd_false -$DEPTH
+			;;
+		*)
+			die "$1: invalid boolean value"
+	esac
+}
+
+launchd_integer () {
+	local DEPTH=0
+	if [ $# -gt 1 ]
+	then
+		if launchd_is_depth_parameter "$1"
+		then
+			DEPTH=$(($1 * -1))
+			shift
+		fi
+	fi
+	echo "$(launchd_indent -$DEPTH "<integer>$(($1))</integer>")"
+}
+
+launchd_string () {
+	local DEPTH=0
+	if launchd_is_depth_parameter "$1"
+	then
+		DEPTH=$(($1 * -1))
+		shift
+	fi
+	local ESCAPED="$(launchd_escape "$1")"
+	if [ -n "$ESCAPED" ]
+	then
+		echo "$(launchd_indent -$DEPTH "<string>$(launchd_escape "$1")</string>")"
+	else
+		echo "$(launchd_indent -$DEPTH "<string/>")"
+	fi
+}
+
+launchd_string_or_empty () {
+	local DEPTH=0
+	if launchd_is_depth_parameter "$1"
+	then
+		DEPTH=$(($1 * -1))
+		shift
+	fi
+	if [ -n "$1" ]
+	then
+		launchd_string -$DEPTH "$1"
+	fi
+}
+
+launchd_string_sequence () {
+	local DEPTH=0
+	if launchd_is_depth_parameter "$1"
+	then
+		DEPTH=$(($1 * -1))
+		shift
+	fi
+	local RESULT=
+	if [ $# -gt 1 ]
+	then
+		local IFS="$1"
+		shift
+	fi
+	local SEQUENCE="$1"
+	for ITEM in $SEQUENCE
+	do
+		if [ -z "$RESULT" ]
+		then
+			RESULT="$(launchd_string -$DEPTH "$ITEM")"
+		else
+			RESULT="$RESULT\n$(launchd_string -$DEPTH "$ITEM")"
+		fi
+	done
+	echo "$RESULT"
+}
+
+launchd_key () {
+	local DEPTH=0
+	if launchd_is_depth_parameter "$1"
+	then
+		DEPTH=$(($1 * -1))
+		shift
+	fi
+	echo "$(launchd_indent -$DEPTH "<key>$1</key>")"
+}
+
+systemd_escape () {
+	echo "$1" | perl -e 's/(["'\''\\])/\\$1/g' -p
+}
+
+systemd_quote () {
+	if [ $# -eq 0 ]
+	then
+		return
+	elif [ -z "$1" ]
+	then
+		echo '""'
+		return
+	fi
+	local ESCAPED="$(systemd_escape $1)"
+	if [ "$ESCAPED" = "$1" ]
+	then
+		echo "$ESCAPED"
+	else
+		echo "\"$ESCAPED\""
+	fi
+}
+
+systemd_quote_or_empty () {
+	if [ -n "$1" ]
+	then
+		systemd_quote "$1"
+	fi
+}
+
+systemd_quote_sequence () {
+	local RESULT=
+	if [ $# -gt 1 ]
+	then
+		local IFS="$1"
+		shift
+	fi
+	local SEQUENCE="$1"
+	for ITEM in $SEQUENCE
+	do
+		if [ -z "$RESULT" ]
+		then
+			RESULT="$(systemd_quote "$ITEM")"
+		else
+			RESULT="$RESULT $(systemd_quote "$ITEM")"
+		fi
+	done
+	echo "$RESULT"
+}
+
+case "$MODE" in
+	launchd)
+		ARGUMENTS="$(launchd_string_sequence -0 $'\037' "$ARGUMENTS")"
+		GROUP="$(launchd_string_or_empty -0 "$GROUP")"
+		JAR="$(launchd_string -0 "$JAR")"
+		JAVA="$(launchd_string -0 "$JAVA")"
+		OPTIONS="$(launchd_string_sequence -0 $'\037' "$OPTIONS")"
+		USER="$(launchd_string_or_empty -0 "$USER")"
+		WORKING_DIRECTORY="$(launchd_string -0 "$WORKING_DIRECTORY")"
+		;;
+	systemd)
+		ARGUMENTS="$(systemd_quote_sequence $'\037' "$ARGUMENTS")"
+		GROUP="$(systemd_quote_or_empty "$GROUP")"
+		JAR="$(systemd_quote "$JAR")"
+		JAVA="$(systemd_quote "$JAVA")"
+		OPTIONS="$(systemd_quote_sequence $'\037' "$OPTIONS")"
+		USER="$(systemd_quote_or_empty "$USER")"
+		WORKING_DIRECTORY="$(systemd_quote "$WORKING_DIRECTORY")"
+esac
+
+echo_launchd_plist () {
+	echo '<?xml version="1.0" encoding="UTF-8"?>'
+	echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+	echo '<plist version="1.0">'
+	echo '<dict>'
+	echo "$(launchd_key -1 ExitTimeOut)"
+	echo "$(launchd_integer -1 90)"
+	if [ -n "$GROUP" ]
+	then
+		echo "$(launchd_key -1 GroupName)"
+		echo "$(launchd_indent -1 "$GROUP")"
+	fi
+	echo "$(launchd_key -1 KeepAlive)"
+	echo "$(launchd_indent -1 '<dict>')"
+	echo "$(launchd_key -2 SuccessfulExit)"
+	echo "$(launchd_false -2)"
+	echo "$(launchd_indent -1 '</dict>')"
+	echo "$(launchd_key -1 Label)"
+	echo "$(launchd_string -1 moe.minacle.minecraft.paperd)"
+	echo "$(launchd_key -1 ProgramArguments)"
+	echo "$(launchd_array -1 "$JAVA" "$OPTIONS" $(launchd_string -jar) "$JAR" "$ARGUMENTS")"
+	if [ -n "$USER" ]
+	then
+		echo "$(launchd_key -1 UserName)"
+		echo "$(launchd_indent -1 "$USER")"
+	fi
+	echo "$(launchd_key -1 WorkingDirectory)"
+	echo "$(launchd_indent -1 "$WORKING_DIRECTORY")"
+	echo '</dict>'
+	echo '</plist>'
+}
+
+echo_systemd_unit () {
+	echo '[Install]'
+	echo 'WantedBy=multi-user.target'
+	echo
+	echo '[Service]'
+	printf 'ExecStart=%s' "$JAVA"
+	if [ -n "$OPTIONS" ]
+	then
+		printf ' %s' "$OPTIONS"
+	fi
+	printf ' -jar %s' "$JAR"
+	if [ -n "$ARGUMENTS" ]
+	then
+		printf ' -- %s\n' "$ARGUMENTS"
+	else
+		echo
+	fi
+	if [ -n "$GROUP" ]
+	then
+		echo "Group=$GROUP"
+	fi
+	echo 'Restart=on-abnormal'
+	echo 'RestartSec=30'
+	echo 'SuccessExitStatus=143'
+	echo 'TimeoutStopSec=90'
+	echo 'Type=simple'
+	if [ -n "$USER" ]
+	then
+		echo "User=$USER"
+	fi
+	echo "WorkingDirectory=$WORKING_DIRECTORY"
+	echo
+	echo '[Unit]'
+	echo 'After=network.target'
+	echo 'Description=Paper Minecraft Server'
+	echo 'Wants=network-online.target'
+}
+
+case "$MODE" in
+	launchd)
+		echo "$(echo_launchd_plist)"
+		;;
+	systemd)
+		echo "$(echo_systemd_unit)"
+esac
