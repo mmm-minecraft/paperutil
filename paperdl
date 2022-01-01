@@ -1,0 +1,157 @@
+#!/bin/sh
+
+# This is free and unencumbered software released into the public domain.
+#
+# Anyone is free to copy, modify, publish, use, compile, sell, or
+# distribute this software, either in source code form or as a compiled
+# binary, for any purpose, commercial or non-commercial, and by any
+# means.
+#
+# In jurisdictions that recognize copyright laws, the author or authors
+# of this software dedicate any and all copyright interest in the
+# software to the public domain. We make this dedication for the benefit
+# of the public at large and to the detriment of our heirs and
+# successors. We intend this dedication to be an overt act of
+# relinquishment in perpetuity of all present and future rights to this
+# software under copyright law.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+# For more information, please refer to <http://unlicense.org/>
+
+echo_error () {
+	printf '%s: %s\n' "${0##*/}" "$*" >&2
+}
+
+die () {
+	local EXIT_CODE=1
+	if [ "$1" -ge 0 ] 2>/dev/null
+	then
+		EXIT_CODE=$(($1))
+		shift
+	fi
+	if [ -n "$1" ]
+	then
+		echo_error "$1"
+	fi
+	exit $EXIT_CODE
+}
+
+nonzero_or_die () {
+	if [ -z "$1" ]
+	then
+		shift
+		die "$@"
+	fi
+}
+
+command_or_die () {
+	while [ $# -gt 0 ]
+	do
+		nonzero_or_die "$(command -v "$1")" "$1: command not found"
+		shift
+	done
+}
+
+command_or_die perl
+
+perl_package_or_die () {
+	while [ $# -gt 0 ]
+	do
+		if perl -M"$1" -e '' 2>/dev/null
+		then
+			shift
+			continue
+		fi
+		die "$1: perl package not found"
+	done
+}
+
+command_or_die curl jq mktemp shasum
+perl_package_or_die URI::Escape
+
+echo_usage () {
+	printf 'usage: %s ' "${0##*/}"
+	echo '[-build BUILD] -version VERSION [--] DESTINATION'
+}
+case "$1" in
+	-h|-help|--help)
+		echo_usage
+		exit 0
+		;;
+esac
+
+BUILD=
+VERSION=
+while [ $# -gt 0 ]
+do
+	case "$1" in
+		-build)
+			nonzero_or_die "$2" "$1: option requires an argument"
+			BUILD="$2"
+			shift 2
+			;;
+		-version)
+			nonzero_or_die "$2" "$1: option requires an argument"
+			VERSION="$2"
+			shift 2
+			;;
+		--)
+			shift
+			break
+			;;
+		*)
+			break
+	esac
+done
+nonzero_or_die "$VERSION" "$(echo_usage)"
+
+nonzero_or_die "$1" "$(echo_usage)"
+DESTINATION="$1"
+if [ ! -d "$DESTINATION" ]
+then
+	if [ -e "$DESTINATION" ]
+	then
+		die "$DESTINATION: not a directory"
+	fi
+	mkdir -p "$DESTINATION"
+fi
+
+set -e
+
+BASE_URL='https://papermc.io/api/v2/projects/paper'
+
+if [ -z "$BUILD" ]
+then
+	URL="$BASE_URL/versions/$VERSION"
+	BUILD="$(curl -s "$URL" | jq -r '.builds | sort | .[-1]')"
+fi
+
+BUILD="$(echo "$BUILD" | perl -MURI::Escape -e 'print uri_escape(<>)')"
+VERSION="$(echo "$VERSION" | perl -MURI::Escape -e 'print uri_escape(<>)')"
+
+TEMP_FILE="$(mktemp)"
+
+URL="$BASE_URL/versions/$VERSION/builds/$BUILD"
+curl -s "$URL" >"$TEMP_FILE"
+APPLICATION_NAME="$(jq -r '.downloads.application.name' <"$TEMP_FILE")"
+APPLICATION_CHECKSUM="$(jq -r '.downloads.application.sha256' <"$TEMP_FILE")"
+
+rm "$TEMP_FILE"
+
+TEMP_FILE="$(mktemp)"
+TEMP_CHECKSUM_FILE="$(mktemp)"
+
+URL="$BASE_URL/versions/$VERSION/builds/$BUILD/downloads/$APPLICATION_NAME"
+curl -s "$URL" >"$TEMP_FILE"
+echo "$APPLICATION_CHECKSUM  $TEMP_FILE" >"$TEMP_CHECKSUM_FILE"
+shasum -a 256 -bc --quiet "$TEMP_CHECKSUM_FILE"
+mv "$TEMP_FILE" "$DESTINATION/$APPLICATION_NAME"
+
+rm "$TEMP_CHECKSUM_FILE"
