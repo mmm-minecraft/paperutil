@@ -83,6 +83,8 @@ case "$1" in
 		exit 0
 esac
 
+SEQUENCE_DELIMITER=''  # \037
+
 GROUP=
 JAR=
 JAVA=
@@ -144,7 +146,7 @@ do
 			then
 				OPTIONS="$1"
 			else
-				OPTIONS="$OPTIONS"$'\037'"$1"
+				OPTIONS="$OPTIONS$SEQUENCE_DELIMITER$1"
 			fi
 			shift
 			;;
@@ -167,7 +169,7 @@ do
 	then
 		ARGUMENTS="$1"
 	else
-		ARGUMENTS="$ARGUMENTS"$'\037'"$1"
+		ARGUMENTS="$ARGUMENTS$SEQUENCE_DELIMITER$1"
 	fi
 	shift
 done
@@ -426,20 +428,20 @@ systemd_quote_sequence () {
 
 case "$MODE" in
 	launchd)
-		ARGUMENTS="$(launchd_string_sequence -0 $'\037' "$ARGUMENTS")"
+		ARGUMENTS="$(launchd_string_sequence -0 "$SEQUENCE_DELIMITER" "$ARGUMENTS")"
 		GROUP="$(launchd_string_or_empty -0 "$GROUP")"
 		JAR="$(launchd_string -0 "$JAR")"
 		JAVA="$(launchd_string -0 "$JAVA")"
-		OPTIONS="$(launchd_string_sequence -0 $'\037' "$OPTIONS")"
+		OPTIONS="$(launchd_string_sequence -0 "$SEQUENCE_DELIMITER" "$OPTIONS")"
 		USER="$(launchd_string_or_empty -0 "$USER")"
 		WORKING_DIRECTORY="$(launchd_string -0 "$WORKING_DIRECTORY")"
 		;;
 	systemd)
-		ARGUMENTS="$(systemd_quote_sequence $'\037' "$ARGUMENTS")"
+		ARGUMENTS="$(systemd_quote_sequence "$SEQUENCE_DELIMITER" "$ARGUMENTS")"
 		GROUP="$(systemd_quote_or_empty "$GROUP")"
 		JAR="$(systemd_quote "$JAR")"
 		JAVA="$(systemd_quote "$JAVA")"
-		OPTIONS="$(systemd_quote_sequence $'\037' "$OPTIONS")"
+		OPTIONS="$(systemd_quote_sequence "$SEQUENCE_DELIMITER" "$OPTIONS")"
 		USER="$(systemd_quote_or_empty "$USER")"
 		WORKING_DIRECTORY="$(systemd_quote "$WORKING_DIRECTORY")"
 esac
