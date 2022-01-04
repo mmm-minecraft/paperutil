@@ -75,12 +75,18 @@ perl_package_or_die () {
 
 command_or_die ln
 
-if [ -x './paperdl' ]
-then
-	alias paperdl='./paperdl'
-else
-	command_or_die paperdl
-fi
+case "$0" in
+	*/*)
+		if [ -x "${0%/*}/paperdl" ]
+		then
+			alias paperdl="${0%/*}/paperdl"
+		else
+			command_or_die paperdl
+		fi
+		;;
+	*)
+		command_or_die paperdl
+esac
 
 echo_usage () {
 	printf 'usage: %s ' "${0##*/}"
