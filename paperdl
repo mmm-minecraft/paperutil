@@ -73,7 +73,7 @@ perl_package_or_die () {
 	done
 }
 
-command_or_die curl jq mktemp shasum
+command_or_die curl jq mktemp mv rm shasum
 perl_package_or_die URI::Escape
 
 echo_usage () {
@@ -84,7 +84,6 @@ case "$1" in
 	-h|-help|--help)
 		echo_usage
 		exit 0
-		;;
 esac
 
 BUILD=
@@ -130,28 +129,24 @@ BASE_URL='https://papermc.io/api/v2/projects/paper'
 if [ -z "$BUILD" ]
 then
 	URL="$BASE_URL/versions/$VERSION"
-	BUILD="$(curl -s "$URL" | jq -r '.builds | sort | .[-1]')"
+	BUILD="$(curl -s "$URL" | jq -r '.builds[-1]')"
 fi
 
 BUILD="$(printf '%s' "$BUILD" | perl -MURI::Escape -e 'print uri_escape(<>)')"
 VERSION="$(printf '%s' "$VERSION" | perl -MURI::Escape -e 'print uri_escape(<>)')"
 
 TEMP_FILE="$(mktemp)"
-
 URL="$BASE_URL/versions/$VERSION/builds/$BUILD"
-curl -s "$URL" >"$TEMP_FILE"
+curl -o "$TEMP_FILE" -s "$URL"
 APPLICATION_NAME="$(jq -r '.downloads.application.name' <"$TEMP_FILE")"
 APPLICATION_CHECKSUM="$(jq -r '.downloads.application.sha256' <"$TEMP_FILE")"
-
 rm "$TEMP_FILE"
 
 TEMP_FILE="$(mktemp)"
 TEMP_CHECKSUM_FILE="$(mktemp)"
-
 URL="$BASE_URL/versions/$VERSION/builds/$BUILD/downloads/$APPLICATION_NAME"
-curl -s "$URL" >"$TEMP_FILE"
+curl -Ro "$TEMP_FILE" -s "$URL"
 echo "$APPLICATION_CHECKSUM  $TEMP_FILE" >"$TEMP_CHECKSUM_FILE"
 shasum -a 256 -bc --quiet "$TEMP_CHECKSUM_FILE"
 mv "$TEMP_FILE" "$DESTINATION/$APPLICATION_NAME"
-
 rm "$TEMP_CHECKSUM_FILE"
