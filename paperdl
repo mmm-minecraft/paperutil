@@ -78,7 +78,7 @@ perl_package_or_die URI::Escape
 
 echo_usage () {
 	printf 'usage: %s ' "${0##*/}"
-	echo '[-build BUILD] -version VERSION [--] DESTINATION'
+	echo '[-build BUILD] [-version VERSION] [--] DESTINATION'
 }
 case "$1" in
 	-h|-help|--help)
@@ -109,7 +109,6 @@ do
 			break
 	esac
 done
-nonzero_or_die "$VERSION" "$(echo_usage)"
 
 nonzero_or_die "$1" "$(echo_usage)"
 DESTINATION="$1"
@@ -126,6 +125,12 @@ fi
 set -e
 
 BASE_URL='https://papermc.io/api/v2/projects/paper'
+
+if [ -z "$VERSION" ]
+then
+	URL="$BASE_URL"
+	VERSION="$(curl -s "$URL" | jq -r '.versions[-1]')"
+fi
 
 if [ -z "$BUILD" ]
 then
