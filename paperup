@@ -139,4 +139,4 @@ then
 fi
 ln -fs -- "$APPLICATION_NAME" "$DESTINATION/$SYMBOLIC_LINK"
 
-echo "$SYMBOLIC_LINK"
+printf '%s\n' "$SYMBOLIC_LINK"
