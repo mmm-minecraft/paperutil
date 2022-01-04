@@ -118,8 +118,9 @@ then
 	if [ -e "$DESTINATION" ]
 	then
 		die "$DESTINATION: not a directory"
-	fi
-	mkdir -p "$DESTINATION"
+	else
+		die "$DESTINATION: no such directory"
+    fi
 fi
 
 set -e
