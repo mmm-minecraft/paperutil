@@ -72,7 +72,7 @@ perl_package_or_die () {
 	done
 }
 
-command_or_die ln
+command_or_die date ln
 
 case "$0" in
 	*/*)
@@ -89,7 +89,7 @@ esac
 
 echo_usage () {
 	printf 'usage: %s ' "${0##*/}"
-	echo '[-link SYMBOLIC_LINK] -version VERSION [--] DESTINATION'
+	echo '[-link SYMBOLIC_LINK] [-verbose] -version VERSION [--] DESTINATION'
 }
 case "$1" in
 	-h|-help|--help)
@@ -97,6 +97,14 @@ case "$1" in
 		exit 0
 		;;
 esac
+
+VERBOSE=
+echo_verbose () {
+	if [ -n $VERBOSE ]
+	then
+		printf '%s [%s] %s\n' "$(date -Iseconds)" "${0##*/}" "$*" >&2
+	fi
+}
 
 SYMBOLIC_LINK=
 VERSION=
@@ -106,6 +114,10 @@ do
 		-link)
 			nonzero_or_die "$2" "$1: option requires an argument"
 			SYMBOLIC_LINK="$2"
+			;;
+		-verbose)
+			VERBOSE="$1"
+			shift
 			;;
 		-version)
 			nonzero_or_die "$2" "$1: option requires an argument"
@@ -125,7 +137,12 @@ nonzero_or_die "$VERSION" "$(echo_usage)"
 nonzero_or_die "$1" "$(echo_usage)"
 DESTINATION="$1"
 
-APPLICATION_NAME="$(paperdl -version "$VERSION" -- "$DESTINATION")"
+if [ -n "$VERBOSE" ]
+then
+	APPLICATION_NAME="$(paperdl -verbose -version "$VERSION" -- "$DESTINATION")"
+else
+	APPLICATION_NAME="$(paperdl -version "$VERSION" -- "$DESTINATION")"
+fi
 EXIT_CODE=$?
 if [ $EXIT_CODE -ne 0 ]
 then
@@ -134,8 +151,12 @@ fi
 
 if [ -z "$SYMBOLIC_LINK" ]
 then
+	echo_verbose "SYMBOLIC_LINK is not set."
 	SYMBOLIC_LINK="paper-$VERSION-latest.jar"
+	echo_verbose "set SYMBOLIC_LINK to $SYMBOLIC_LINK"
 fi
 ln -fs -- "$APPLICATION_NAME" "$DESTINATION/$SYMBOLIC_LINK"
+echo_verbose "linked $SYMBOLIC_LINK to $APPLICATION_NAME"
 
 printf '%s\n' "$SYMBOLIC_LINK"
+echo_verbose "done."

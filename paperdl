@@ -72,18 +72,26 @@ perl_package_or_die () {
 	done
 }
 
-command_or_die curl jq mktemp mv rm shasum
+command_or_die curl date jq mktemp mv rm shasum
 perl_package_or_die URI::Escape
 
 echo_usage () {
 	printf 'usage: %s ' "${0##*/}"
-	echo '[-build BUILD] [-version VERSION] [--] DESTINATION'
+	echo '[-build BUILD] [-verbose] [-version VERSION] [--] DESTINATION'
 }
 case "$1" in
 	-h|-help|--help)
 		echo_usage
 		exit 0
 esac
+
+VERBOSE=
+echo_verbose () {
+	if [ -n $VERBOSE ]
+	then
+		printf '%s [%s] %s\n' "$(date -Iseconds)" "${0##*/}" "$*" >&2
+	fi
+}
 
 BUILD=
 VERSION=
@@ -94,6 +102,10 @@ do
 			nonzero_or_die "$2" "$1: option requires an argument"
 			BUILD="$2"
 			shift 2
+			;;
+		-verbose)
+			VERBOSE="$1"
+			shift
 			;;
 		-version)
 			nonzero_or_die "$2" "$1: option requires an argument"
@@ -128,13 +140,17 @@ BASE_URL='https://papermc.io/api/v2/projects/paper'
 if [ -z "$VERSION" ]
 then
 	URL="$BASE_URL"
+	echo_verbose "VERSION is not set. retreiving from $URL"
 	VERSION="$(curl -s "$URL" | jq -r '.versions[-1]')"
+	echo_verbose "set VERSION to $VERSION"
 fi
 
 if [ -z "$BUILD" ]
 then
 	URL="$BASE_URL/versions/$VERSION"
+	echo_verbose "BUILD is not set. retreiving from $URL"
 	BUILD="$(curl -s "$URL" | jq -r '.builds[-1]')"
+	echo_verbose "set BUILD to $BUILD"
 fi
 
 BUILD="$(printf '%s' "$BUILD" | perl -MURI::Escape -e 'print uri_escape(<>)')"
@@ -142,6 +158,7 @@ VERSION="$(printf '%s' "$VERSION" | perl -MURI::Escape -e 'print uri_escape(<>)'
 
 TEMP_FILE="$(mktemp)"
 URL="$BASE_URL/versions/$VERSION/builds/$BUILD"
+echo_verbose "downloading application manifest from $URL"
 curl -o "$TEMP_FILE" -s "$URL"
 APPLICATION_NAME="$(jq -r '.downloads.application.name' <"$TEMP_FILE")"
 APPLICATION_CHECKSUM="$(jq -r '.downloads.application.sha256' <"$TEMP_FILE")"
@@ -150,10 +167,13 @@ rm "$TEMP_FILE"
 TEMP_FILE="$(mktemp)"
 TEMP_CHECKSUM_FILE="$(mktemp)"
 URL="$BASE_URL/versions/$VERSION/builds/$BUILD/downloads/$APPLICATION_NAME"
+echo_verbose "downloading application from $URL"
 curl -Ro "$TEMP_FILE" -s "$URL"
 echo "$APPLICATION_CHECKSUM  $TEMP_FILE" >"$TEMP_CHECKSUM_FILE"
+echo_verbose "verifying application with sha256 checksum: $APPLICATION_CHECKSUM"
 shasum -a 256 -bc --quiet "$TEMP_CHECKSUM_FILE"
 mv "$TEMP_FILE" "$DESTINATION/$APPLICATION_NAME"
 rm "$TEMP_CHECKSUM_FILE"
 
 printf '%s\n' "$APPLICATION_NAME"
+echo_verbose "done."
