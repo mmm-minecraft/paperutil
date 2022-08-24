@@ -59,9 +59,8 @@ command_or_die () {
 	done
 }
 
-command_or_die perl
-
 perl_package_or_die () {
+	command_or_die perl
 	while [ $# -gt 0 ]
 	do
 		if perl -M"$1" -e '' 2>/dev/null
