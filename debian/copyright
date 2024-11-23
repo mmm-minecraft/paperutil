@@ -1,0 +1,7 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: paperutil
+Source: https://github.com/mmm-minecraft/paperutil
+
+Files: *
+Copyright: 2024, Mina Her <minacle@live.com>
+License: Unlicense

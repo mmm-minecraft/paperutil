@@ -1,0 +1,3 @@
+mkpaperd usr/bin
+paperdl usr/bin
+paperup usr/bin

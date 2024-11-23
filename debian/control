@@ -1,0 +1,11 @@
+Source: paperutil
+Maintainer: Mina Her <minacle@live.com>
+Section: utils
+Priority: optional
+Standards-Version: 4.5.0
+Build-Depends: debhelper (>= 12)
+
+Package: paperutil
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: paperutil for Launchpad PPA

@@ -1,0 +1,28 @@
+## 9af85ed
+- Add `-verbose` option (2022-08-24)
+## 8c47b78
+- Change to check perl availability when checking packages (2022-08-24)
+## ba644a3
+- Use `printf` rather than `echo` to write user content (2022-01-05)
+## a358e75
+- Fix to handle correct directory (2022-01-04)
+## 68c6818
+- Make `-version` parameter optional (2022-01-04)
+## cab924d
+- New paperup (2022-01-04)
+## a28e331
+- Make to report result file name (2022-01-04)
+## 9b63f60
+- Remove mkdir routine (2022-01-04)
+## 439e84a
+- Improve code quality (2022-01-04)
+## 2ae3b5a
+- Ensure Dash compatibility (2022-01-03)
+## ba8c18c
+- Fix emitting line feed (2022-01-02)
+## 2cd386d
+- UNLICENSE (2022-01-02)
+## c894817
+- New mkpaperd (2022-01-02)
+## 4222ae2
+- New paperdl (2022-01-02)
