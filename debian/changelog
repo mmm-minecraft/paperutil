@@ -1,5 +1,9 @@
 paperutil (1.0.0) stable; urgency=medium
 
+  * add: require dependecy (by Euiseo Cha <zeroday0619_dev@outlook.com>)
+  * fix: debian/rules format (by Euiseo Cha <zeroday0619_dev@outlook.com>)
+  * add: debian/rules (by Euiseo Cha <zeroday0619_dev@outlook.com>)
+  * fix: debian/changelog (by Euiseo Cha <zeroday0619_dev@outlook.com>)
   * add: create debain pkg configure (by Euiseo Cha <zeroday0619_dev@outlook.com>)
   * Add `-verbose` option (by Mina Her <minacle@live.com>)
   * Change to check perl availability when checking packages (by Mina Her <minacle@live.com>)
@@ -15,4 +19,4 @@ paperutil (1.0.0) stable; urgency=medium
   * UNLICENSE (by Mina Her <minacle@live.com>)
   * New mkpaperd (by Mina Her <minacle@live.com>)
   * New paperdl (by Mina Her <minacle@live.com>)
- -- Euiseo Cha <zeroday0619_dev@outlook.com>  Sat, 23 Nov 2024 18:29:56 +0900
+ -- Euiseo Cha <zeroday0619_dev@outlook.com>  Sat, 23 Nov 2024 18:56:14 +0900
