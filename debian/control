@@ -7,5 +7,5 @@ Build-Depends: debhelper (>= 12)
 
 Package: paperutil
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, perl, curl
 Description: paperutil for Launchpad PPA
