@@ -3,16 +3,16 @@ Upstream-Name: paperutil
 Upstream-Contact: Mina Her <minacle@live.com>
 Source: https://github.com/mmm-minecraft/paperutil
 
+Files: *
+Copyright: 2024, Mina Her <minacle@live.com>
+License: Unlicense
+
 Files: scripts/*
 Copyright: 2024, Euiseo Cha <zeroday0619@ubuntu-kr.org>
 License: Unlicense
 
 Files: debian/*
 Copyright: 2024, Euiseo Cha <zeroday0619@ubuntu-kr.org>
-License: Unlicense
-
-Files: *
-Copyright: 2024, Mina Her <minacle@live.com>
 License: Unlicense
 
 License: Unlicense

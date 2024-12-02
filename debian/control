@@ -1,12 +1,12 @@
 Source: paperutil
 Maintainer: Euiseo Cha <zeroday0619@ubuntu-kr.org>
-Uploaders: Euiseo Cha <zeroday0619@ubuntu-kr.org>
 Section: utils
 Priority: optional
 Standards-Version: 4.7.0
 Rules-Requires-Root: no
 Vcs-Git: https://github.com/zeroday0619/paperutil.git
 Vcs-Browser: https://github.com/zeroday0619/paperutil
+Homepage: https://github.com/zeroday0619/paperutil
 Build-Depends: debhelper (>= 12)
 
 
