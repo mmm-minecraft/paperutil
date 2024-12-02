@@ -8,4 +8,4 @@ Build-Depends: debhelper (>= 12)
 Package: paperutil
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, perl, curl, jq, liburi-perl
-Description: paperutil for Launchpad PPA
+Description: paperutil for Debian or Ubuntu
