@@ -1,11 +1,21 @@
 Source: paperutil
-Maintainer: Mina Her <minacle@live.com>
+Maintainer: Euiseo Cha <zeroday0619@ubuntu-kr.org>
+Uploaders: Euiseo Cha <zeroday0619@ubuntu-kr.org>
 Section: utils
 Priority: optional
-Standards-Version: 4.5.0
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+Vcs-Git: https://github.com/zeroday0619/paperutil.git
+Vcs-Browser: https://github.com/zeroday0619/paperutil
 Build-Depends: debhelper (>= 12)
 
+
 Package: paperutil
-Architecture: any
+Architecture: all
 Depends: ${shlibs:Depends}, ${misc:Depends}, perl, curl, jq, liburi-perl
-Description: paperutil for Debian or Ubuntu
+Description: Advanced Minecraft paper utils
+ This tool simplifies the process of downloading a 
+ Paper Minecraft server and generating the corresponding systemd service configuration. 
+ It automates the setup by fetching the latest server files and 
+ creating a ready-to-use systemd service file to manage the server easily. 
+ With this tool, users can quickly set up their server with minimal manual effort.
