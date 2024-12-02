@@ -1,22 +1,5 @@
-paperutil (1.0.0) stable; urgency=medium
+paperutil (1.0.0-1) unstable; urgency=medium
 
-  * add: require dependecy (by Euiseo Cha <zeroday0619_dev@outlook.com>)
-  * fix: debian/rules format (by Euiseo Cha <zeroday0619_dev@outlook.com>)
-  * add: debian/rules (by Euiseo Cha <zeroday0619_dev@outlook.com>)
-  * fix: debian/changelog (by Euiseo Cha <zeroday0619_dev@outlook.com>)
-  * add: create debain pkg configure (by Euiseo Cha <zeroday0619_dev@outlook.com>)
-  * Add `-verbose` option (by Mina Her <minacle@live.com>)
-  * Change to check perl availability when checking packages (by Mina Her <minacle@live.com>)
-  * Use `printf` rather than `echo` to write user content (by Mina Her <minacle@live.com>)
-  * Fix to handle correct directory (by Mina Her <minacle@live.com>)
-  * Make `-version` parameter optional (by Mina Her <minacle@live.com>)
-  * New paperup (by Mina Her <minacle@live.com>)
-  * Make to report result file name (by Mina Her <minacle@live.com>)
-  * Remove mkdir routine (by Mina Her <minacle@live.com>)
-  * Improve code quality (by Mina Her <minacle@live.com>)
-  * Ensure Dash compatibility (by Mina Her <minacle@live.com>)
-  * Fix emitting line feed (by Mina Her <minacle@live.com>)
-  * UNLICENSE (by Mina Her <minacle@live.com>)
-  * New mkpaperd (by Mina Her <minacle@live.com>)
-  * New paperdl (by Mina Her <minacle@live.com>)
- -- Euiseo Cha <zeroday0619_dev@outlook.com>  Sat, 23 Nov 2024 18:56:14 +0900
+  * Initial release. (Closes: #1088877)
+
+ -- Euiseo Cha <zeroday0619@ubuntu-kr.org>  Mon, 02 Dec 2024 22:07:18 +0900
