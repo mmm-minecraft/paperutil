@@ -87,7 +87,7 @@ esac
 
 VERBOSE=
 echo_verbose () {
-	if [ -n $VERBOSE ]
+	if [ -n "$VERBOSE" ]
 	then
 		printf '%s [%s] %s\n' "$(date -Iseconds)" "${0##*/}" "$*" >&2
 	fi
