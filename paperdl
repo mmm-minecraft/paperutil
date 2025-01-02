@@ -135,7 +135,7 @@ fi
 
 set -e
 
-BASE_URL='https://papermc.io/api/v2/projects/paper'
+BASE_URL='https://api.papermc.io/v2/projects/paper'
 
 if [ -z "$VERSION" ]
 then
